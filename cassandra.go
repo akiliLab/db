@@ -1,15 +1,10 @@
 package db
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/gocql/gocql"
 )
-
-// CassandraChan exported
-var CassandraChan chan *gocql.Session
 
 // CassandraSession exported
 var CassandraSession *gocql.Session
@@ -40,27 +35,8 @@ CREATE TABLE IF NOT EXISTS malengopay.balances (
 )
 `
 
-func getSession() (*gocql.Session, error) {
-	select {
-
-	case CassandraSession := <-CassandraChan:
-		return CassandraSession, nil
-	case <-time.After(100 * time.Millisecond):
-		cluster := gocql.NewCluster("127.0.0.1")
-		cluster.Keyspace = "system"
-
-		session, err := cluster.CreateSession()
-
-		if err != nil {
-			panic(err)
-		}
-
-		return session, nil
-	}
-}
-
 // Initialize : Initialize database
-func Initialize() {
+func init() {
 
 	cluster := gocql.NewCluster("127.0.0.1")
 	cluster.Keyspace = "system"
@@ -71,19 +47,4 @@ func Initialize() {
 	session.Query(keyspaceCreationQuery).Iter()
 	session.Query(transactionBaseQuery).Iter()
 	session.Query(balanceBaseQuery).Iter()
-
-	CassandraChan = make(chan *gocql.Session, 50)
-	queueSession(session)
-}
-
-func queueSession(session *gocql.Session) {
-
-	select {
-	case CassandraChan <- session:
-		// session enqueued
-	default:
-		fmt.Println("Blocked")
-		defer session.Close()
-	}
-
 }

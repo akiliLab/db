@@ -27,8 +27,6 @@ func StoreTransaction(req *pb.TransactionRequest) (*pb.TransactionRequest, error
 		req.ID = int64(rand.Intn(150000)) // Should be gocql.RandomUUID() but since i didnt set up any pb with strings as ids..
 	}
 
-	session, _ := getSession()
-
 	stmt, names := qb.Insert("malengopay.transactions").
 		Columns("id", "accountid", "createdat", "description", "amount", "currency", "notes").
 		ToCql()
@@ -45,12 +43,10 @@ func StoreTransaction(req *pb.TransactionRequest) (*pb.TransactionRequest, error
 
 	// Create a query which uses the built query and populates it with the
 	// values in the new item
-	query := gocqlx.Query(session.Query(stmt), names).BindStruct(obj)
+	query := gocqlx.Query(CassandraSession.Query(stmt), names).BindStruct(obj)
 
 	// Run that query and release it when done
 	err := query.ExecRelease()
-
-	go queueSession(session)
 
 	return req, err
 }
