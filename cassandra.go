@@ -47,4 +47,7 @@ func init() {
 	session.Query(keyspaceCreationQuery).Iter()
 	session.Query(transactionBaseQuery).Iter()
 	session.Query(balanceBaseQuery).Iter()
+
+	// Close session when done initializing it
+	defer CassandraSession.Close()
 }
